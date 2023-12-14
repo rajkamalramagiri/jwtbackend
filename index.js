@@ -1,13 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 
 const app = express();
 const PORT = 5000;
 
 // Replace this secret with a secure secret key for production
 const JWT_SECRET = 'your-secret-key';
-
+app.use(cors());
 app.use(bodyParser.json());
 
 // Dummy user data (for demonstration purposes)
@@ -53,8 +54,8 @@ app.post('/login', (req, res) => {
 });
 
 // Protected route that requires a valid token
-app.get('/protected', authenticateToken, (req, res) => {
-  res.json({ message: 'You have access to this protected route', user: req.user });
+app.get('/user', authenticateToken, (req, res) => {
+  res.json({ user: req.user });
 });
 
 app.listen(PORT, () => {
