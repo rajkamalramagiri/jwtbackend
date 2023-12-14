@@ -34,6 +34,7 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
 app.get('/test', (req, res) => {
   res.send('hello')
 })
