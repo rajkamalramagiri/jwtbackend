@@ -26,7 +26,7 @@ const refreshTokenExpiration = 7 * 24 * 60 * 60;
 
 // Middleware to verify the JWT token
 const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization;
+  const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized: No token provided' });
