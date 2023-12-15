@@ -21,6 +21,9 @@ const users = [
 // In-memory store for refresh tokens (in production, use a database)
 const refreshTokens = [];
 
+// Expiration time for refresh tokens in seconds (e.g., 7 days)
+const refreshTokenExpiration = 7 * 24 * 60 * 60;
+
 // Middleware to verify the JWT token
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization;
@@ -29,7 +32,7 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Unauthorized: No token provided' });
   }
 
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       return res.status(403).json({ message: 'Forbidden: Invalid token' });
     }
@@ -42,23 +45,37 @@ app.get('/test', (req, res) => {
   res.send('hello')
 })
 
+// Dummy function to find user by username (replace with your actual logic)
+function findUserByUsername(username) {
+  return users.find(u => u.username === username);
+}
+
 // Route to handle user login
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  const user = users.find(u => u.username === username && u.password === password);
+  // Replace with your actual user authentication logic (e.g., check database)
+  const user = findUserByUsername(username);
 
-  if (!user) {
+  if (!user || user.password !== password) {
     return res.status(401).json({ message: 'Invalid username or password' });
   }
 
   // Generate JWT token
   const accessToken = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '5m' });
+
+
+  // Generate refresh token with expiration time
+  const refreshToken = jwt.sign({ userId: user.id }, JWT_SECRET, {
+    expiresIn: refreshTokenExpiration,
+  });
+
+  // refreshTokens.push(refreshToken);
   
-  // Generate refresh token
-  const refreshToken = uuid.v4();
-  refreshTokens.push(refreshToken);
-  user.refreshToken = refreshToken;
+  // Save refresh token with the user (in production, store it in a database)
+  
+  // user.refreshToken = refreshToken;
+
   res.json({ accessToken, refreshToken });
 
 });
@@ -66,22 +83,27 @@ app.post('/login', (req, res) => {
 // Route to refresh the JWT token
 app.post('/token', (req, res) => {
   const { refreshToken } = req.body;
-  console.log('refere',refreshToken)
 
-  if (!refreshToken || !refreshTokens.includes(refreshToken)) {
+  if (!refreshToken) {
     return res.status(403).json({ message: 'Forbidden: Invalid refresh token' });
   }
 
+// Verify the refresh token and extract the user ID
+  const decoded = jwt.verify(refreshToken, JWT_SECRET);
+  console.log('decoed',decoded)
+  const userId = decoded.userId;
+
   // Find user data associated with the refresh token
-  const user = users.find(u => u.refreshToken === refreshToken);
-  console.log('user',user)
+  const user = users.find(u => u.id === userId);
+
+
   if (!user) {
     return res.status(403).json({ message: 'Forbidden: User not found for refresh token' });
   }
 
   // Generate a new JWT token with user data
   const newAccessToken = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: '15m', // Token expires in 15 minutes
+    expiresIn: '5m', // Token expires in 15 minutes
   });
 
   res.json({ accessToken: newAccessToken });
